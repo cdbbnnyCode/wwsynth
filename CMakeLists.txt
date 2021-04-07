@@ -12,6 +12,7 @@ add_executable(synth
     src/util.cpp
     src/aaf.cpp
     src/instrument.cpp
+    src/audio_system.cpp
     src/main.cpp
 )
 

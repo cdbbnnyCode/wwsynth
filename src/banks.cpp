@@ -43,7 +43,7 @@ Wave *Wavesystem::getWave(uint16_t aw_id, uint16_t wave_id)
   WaveEntry entry{aw_id, wave_id};
   
   if (this->waves.count(entry) == 0) return nullptr;
-  else return &this->waves[entry];
+  else return this->waves[entry].get();
 }
 
 bool Wavesystem::load(std::istream &f, std::string waves_path)
@@ -182,8 +182,10 @@ bool Wavesystem::load(std::istream &f, std::string waves_path)
       f.seekg(base_off + cdf_entry_offs[j]);
       entry.aw_id = readu16(f);
       entry.wave_id = readu16(f);
+      wave.aw_id = entry.aw_id;
+      wave.wave_id = entry.wave_id;
 
-      waves[entry] = wave;
+      waves[entry] = std::move(std::make_unique<Wave>(wave));
 
       printf("Wave: AW %6u, wave %6u -> fmt %u key %3u, %5d bytes @ %08x, %6u samples @%5.0fHz %s %6u-%6u in %s\n",
         entry.aw_id, entry.wave_id, wave.format, wave.base_key, wave.wavedata_size, wave.wavedata_offset,
@@ -193,26 +195,26 @@ bool Wavesystem::load(std::istream &f, std::string waves_path)
   }
 
   printf("\n");
-  for (std::pair<WaveEntry, Wave> entry : waves)
+  for (std::pair<const WaveEntry, std::unique_ptr<Wave>> &entry : waves)
   {
-    WaveEntry &waveid = entry.first;
-    Wave &wave = entry.second;
+    const WaveEntry &waveid = entry.first;
+    std::unique_ptr<Wave> &wave = waves[waveid];
 
     std::string outfilename = "../data/waves/wsys" + std::to_string(wsys_id) + "_aw" + std::to_string(waveid.aw_id) + "_wv" \
                               + std::to_string(waveid.wave_id) + ".wav";
-    std::string infile = waves_path + "/" + std::string(wave.aw_filename);
+    std::string infile = waves_path + "/" + std::string(wave->aw_filename);
 
-    printf("Decoding %s:%08x-%08x\n", wave.aw_filename, wave.wavedata_offset, wave.wavedata_offset + wave.wavedata_size);
-    wave.data.resize(wave.sample_count, 1, 0);
+    printf("Decoding %s:%08x-%08x\n", wave->aw_filename, wave->wavedata_offset, wave->wavedata_offset + wave->wavedata_size);
+    wave->data.resize(wave->sample_count, 1, 0);
 
     std::ifstream in_data(infile, std::ios::binary);
-    in_data.seekg(wave.wavedata_offset);
-    if (wave.format == 0) decode_adpcm4(wave.data, in_data, wave.wavedata_size);
-    else if (wave.format == 2) decode_pcm8(wave.data, in_data, wave.wavedata_size);
-    else if (wave.format == 3) decode_pcm16(wave.data, in_data, wave.wavedata_size);
+    in_data.seekg(wave->wavedata_offset);
+    if (wave->format == 0) decode_adpcm4(wave->data, in_data, wave->wavedata_size);
+    else if (wave->format == 2) decode_pcm8(wave->data, in_data, wave->wavedata_size);
+    else if (wave->format == 3) decode_pcm16(wave->data, in_data, wave->wavedata_size);
     else
     {
-      printf("Unknown wave format %d\n", wave.format);
+      printf("Unknown wave format %d\n", wave->format);
     }
     
 
@@ -357,25 +359,25 @@ static void decode_pcm16(stk::StkFrames &data, std::ifstream &f, uint32_t size)
 ///////////////////////////////////////////////////////////////////////////
 // IBNK decoding
 
-KeyRgn &KeyMap::addRgn(uint8_t maxKey)
+KeyRgn *KeyMap::addRgn(uint8_t maxKey)
 {
-  this->regions.push_back(KeyRgn{maxKey});
-  return this->regions.back();
+  this->regions.push_back(std::move(std::make_unique<KeyRgn>(KeyRgn{maxKey})));
+  return this->regions.back().get();
 }
 
 KeyInfo *KeyMap::getKeyInfo(uint8_t key, uint8_t vel)
 {
   if (key > 127 || vel > 127) return nullptr;
 
-  for (KeyRgn &rgn : regions)
+  for (std::unique_ptr<KeyRgn> &rgn : regions)
   {
-    if ((isPercussion && key == rgn.maxKey) || (!isPercussion && key <= rgn.maxKey))
+    if ((isPercussion && key == rgn->maxKey) || (!isPercussion && key <= rgn->maxKey))
     {
-      for (KeyInfo &inf : rgn.keys)
+      for (std::unique_ptr<KeyInfo> &inf : rgn->keys)
       {
-        if (vel < inf.maxVel)
+        if (vel < inf->maxVel)
         {
-          return &inf;
+          return inf.get();
         }
       }
       break;
@@ -436,17 +438,17 @@ bool IBNK::load(std::istream &f)
       f.read(magic, 4);
       if (memcmp(magic, "INST", 4) == 0)
       {
-        instruments.emplace_back();
-        BankInstrument &instrument = instruments.back();
+        instruments.push_back(std::make_unique<BankInstrument>());
+        std::unique_ptr<BankInstrument> &instrument = instruments.back();
 
-        instrument.isPercussion = false;
-        instrument.keys.isPercussion = false;
+        instrument->isPercussion = false;
+        instrument->keys.isPercussion = false;
         f.read(magic, 4); // skip 4 bytes of padding(?)
         float volume = read_float(f);
         float pitch  = read_float(f);
 
-        instrument.volume = volume;
-        instrument.pitch = pitch;
+        instrument->volume = volume;
+        instrument->pitch = pitch;
         uint32_t osci_off = readu32(f); // TODO find ADSR data
 
         f.seekg((uint32_t)f.tellg() + 0x14);
@@ -469,7 +471,7 @@ bool IBNK::load(std::istream &f)
           f.read(magic, 4); // use magic as a general-purpose 4-byte buffer
 
           uint8_t maxKey = magic[0];
-          KeyRgn &rgn = instrument.keys.addRgn(maxKey);
+          KeyRgn *rgn = instrument->keys.addRgn(maxKey);
           
           uint32_t vel_rgn_count = readu32(f);
           if (vel_rgn_count > 128)
@@ -486,26 +488,26 @@ bool IBNK::load(std::istream &f)
 
           for (uint32_t k = 0; k < vel_rgn_count; k++)
           {
-            rgn.keys.emplace_back();
-            KeyInfo &info = rgn.keys.back();
-            info.rgn = &rgn;
+            rgn->keys.push_back(std::make_unique<KeyInfo>());
+            std::unique_ptr<KeyInfo> &info = rgn->keys.back();
+            info->rgn = rgn;
             f.seekg(base_off + vel_rgn_offs[k]);
             f.read(magic, 4);
 
-            info.maxVel = magic[0];
-            info.awid   = readu16(f);
-            info.waveid = readu16(f);
-            info.volume = read_float(f);
-            info.pitch  = read_float(f);
+            info->maxVel = magic[0];
+            info->awid   = readu16(f);
+            info->waveid = readu16(f);
+            info->volume = read_float(f);
+            info->pitch  = read_float(f);
           }
         }
       }
       else if (memcmp(magic, "PER2", 4) == 0)
       {
-        instruments.emplace_back();
-        BankInstrument &instrument = instruments.back();
-        instrument.isPercussion = true;
-        instrument.keys.isPercussion = true;
+        instruments.push_back(std::make_unique<BankInstrument>());
+        std::unique_ptr<BankInstrument> &instrument = instruments.back();
+        instrument->isPercussion = true;
+        instrument->keys.isPercussion = true;
         printf("Percussion instrument @ %08x\n", (uint32_t)f.tellg());
 
         f.seekg((uint32_t)f.tellg() + 0x84);
@@ -526,11 +528,11 @@ bool IBNK::load(std::istream &f)
             continue;
           }
 
-          KeyRgn &rgn = instrument.keys.addRgn(j);
+          KeyRgn *rgn = instrument->keys.addRgn(j);
           f.seekg(base_off + key_offs[j]);
 
-          rgn.volume = readu32(f);
-          rgn.pitch = readu32(f);
+          rgn->volume = readu32(f);
+          rgn->pitch = readu32(f);
 
           f.seekg((uint32_t)f.tellg() + 8);
           uint32_t vel_rgn_count = readu32(f);
@@ -552,17 +554,17 @@ bool IBNK::load(std::istream &f)
           {
             f.seekg(base_off + vel_rgn_offs[k]);
 
-            rgn.keys.emplace_back();
-            KeyInfo &info = rgn.keys.back();
-            info.rgn = &rgn;
+            rgn->keys.push_back(std::make_unique<KeyInfo>());
+            std::unique_ptr<KeyInfo> &info = rgn->keys.back();
+            info->rgn = rgn;
             f.seekg(base_off + vel_rgn_offs[k]);
             f.read(magic, 4);
 
-            info.maxVel = magic[0];
-            info.awid   = readu16(f);
-            info.waveid = readu16(f);
-            info.volume = read_float(f);
-            info.pitch  = read_float(f);
+            info->maxVel = magic[0];
+            info->awid   = readu16(f);
+            info->waveid = readu16(f);
+            info->volume = read_float(f);
+            info->pitch  = read_float(f);
           }
         }
       }

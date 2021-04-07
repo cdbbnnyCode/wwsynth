@@ -26,11 +26,17 @@ void SampleInstr::setInstr(uint32_t instrument)
     return;
   }
 
-  this->inst = &this->bank->instruments[instrument];
+  this->inst = this->bank->instruments[instrument].get();
 }
 
 bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
 {
+  if (note == nullptr)
+  {
+    printf("WARN: note is null\n");
+    return false;
+  }
+
   note->wave = nullptr;
   if (this->bank == nullptr || this->wsys == nullptr || this->inst == nullptr)
   {
@@ -40,7 +46,10 @@ bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
 
   KeyInfo *info = this->inst->keys.getKeyInfo(key, vel);
   if (info == nullptr) // no sound on that key; don't play anything
+  {
+    printf("no key/velocity region for key %u vel %u\n", key, vel);
     return false;
+  }
 
   Wave *wave = this->wsys->getWave(0, info->waveid);
   if (wave == nullptr) // no wave in the wavesystem
@@ -83,6 +92,7 @@ void Note::reset()
 {
   adsr.setValue(0);
   playing = false;
+  finished = false;
 }
 
 static stk::StkFloat getLoopedPos(stk::StkFloat pos, uint32_t loop_start, uint32_t loop_end)
@@ -107,25 +117,26 @@ stk::StkFloat Note::tick()
   if (envValue == 0)
   {
     playing = false;
+    finished = true;
     return 0;
   }
 
   if (!wave->loop && position >= wave->loop_end)
   {
     playing = false;
+    finished = true;
     return 0;
   }
 
-  stk::StkFloat tick_delta = (samplerate / wave->sample_rate) * this->pitch;
+  stk::StkFloat tick_delta = (samplerate / wave->sample_rate)
+                              * this->pitch * pitch_adj;
   if (!isPercussion)
   {
-    int diffNote = (int)key - wave->base_key;
-    if (diffNote < 0) tick_delta /= MIDI_NOTES[-diffNote];
-    else              tick_delta *= MIDI_NOTES[diffNote];
+    tick_delta *= MIDI_NOTES[key] / MIDI_NOTES[wave->base_key];
   }
 
   stk::StkFloat vel = ((stk::StkFloat)this->vel / 127);
-  stk::StkFloat volume = envValue * this->volume * (vel * vel);
+  stk::StkFloat volume = envValue * this->volume * (vel * vel) * volume_adj;
 
   stk::StkFloat start_pos = getLoopedPos(position, wave->loop_start, wave->loop_end);
   uint32_t start_sample = (uint32_t)start_pos;
@@ -138,6 +149,8 @@ stk::StkFloat Note::tick()
 
   stk::StkFloat sample = (end - start) * off + start;
 
+  // printf("start=%u end=%u x=%.4f -> %.4f\n", start_sample, end_sample, off, sample);
+
   position += tick_delta;
 
   return sample * volume;
@@ -145,5 +158,6 @@ stk::StkFloat Note::tick()
 
 void Note::setOutputSampleRate(stk::StkFloat samplerate)
 {
+  this->samplerate = samplerate;
   adsr.setSampleRate(samplerate);
 }

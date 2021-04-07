@@ -13,8 +13,9 @@
 class Note
 {
 private:
-  stk::StkFloat position;
-  bool playing;
+  stk::StkFloat position = 0;
+  bool finished = false;
+  bool playing = false;
   stk::StkFrames lastFrame;
   stk::StkFloat samplerate;
 
@@ -28,6 +29,9 @@ public:
   stk::ADSR adsr;
   bool isPercussion;
 
+  float volume_adj = 1;
+  float pitch_adj = 1;
+
   Note(void)
   {
     lastFrame.resize(1, 1, 0.0);
@@ -36,6 +40,11 @@ public:
   bool isPlayable()
   {
     return this->wave != nullptr;
+  }
+
+  bool isFinished()
+  {
+    return this->finished;
   }
 
   bool isPlaying()

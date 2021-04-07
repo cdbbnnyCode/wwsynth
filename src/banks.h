@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <stdint.h>
 
 #include <iostream>
@@ -32,6 +33,9 @@ struct Wave
   uint32_t wavedata_size;
   char aw_filename[0x70];
 
+  uint16_t aw_id;
+  uint16_t wave_id;
+
   stk::StkFrames data;
 };
 
@@ -49,12 +53,13 @@ struct WaveEntry
 class Wavesystem
 {
 private:
-  std::map<WaveEntry, Wave> waves; // TODO change this into an unordered_map?
-  uint32_t wsys_id;
+  std::map<WaveEntry, std::unique_ptr<Wave>> waves;
+  uint32_t wsys_id = 0xFFFFFFFF;
   bool loaded = false;
 
 public:
   Wavesystem(void);
+  
   bool load(std::istream &f, std::string waves_path);
   bool isLoaded();
   Wave *getWave(uint16_t aw_id, uint16_t wave_id);
@@ -63,6 +68,8 @@ public:
 
   static bool getID(std::istream &f, uint32_t *id);
 };
+
+struct KeyRgn; // it does exist, compiler
 
 struct KeyInfo
 {
@@ -82,17 +89,17 @@ struct KeyRgn
 
   float volume = 1;
   float pitch = 1;
-  std::vector<KeyInfo> keys;
+  std::vector<std::unique_ptr<KeyInfo>> keys;
 };
 
 class KeyMap
 {
 private:
-  std::vector<KeyRgn> regions;
+  std::vector<std::unique_ptr<KeyRgn>> regions;
 public:
   bool isPercussion;
 
-  KeyRgn &addRgn(uint8_t maxKey);
+  KeyRgn *addRgn(uint8_t maxKey);
 
   KeyInfo *getKeyInfo(uint8_t key, uint8_t vel);
 };
@@ -108,18 +115,21 @@ struct BankInstrument
 class IBNK
 {
 private:
-  uint32_t wsysid;
+  uint32_t wsysid = 0xFFFFFFFF;
 
   bool loaded = false;
 
 public:
-  std::vector<BankInstrument> instruments;
+  std::vector<std::unique_ptr<BankInstrument>> instruments;
 
   IBNK(void);
   bool load(std::istream &f);
   bool isLoaded();
 
-  uint32_t getWavesystemID();
+  uint32_t getWavesystemID()
+  {
+    return wsysid;
+  }
 };
 
 #endif // SYNTH_BANKS_H
