@@ -137,6 +137,7 @@ stk::StkFloat Note::tick()
 
   if (envValue == 0)
   {
+    // printf("note end\n");
     playing = false;
     finished = true;
     return 0;

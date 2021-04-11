@@ -75,6 +75,9 @@ bool SeqController::tick(stk::WvOut &out)
   outData.setChannel(0, tickBufL, 0);
   outData.setChannel(1, tickBufR, 0);
   out.tick(tickBufL);
+
+  samples_processed += outData.frames();
+  tick_count++;
   return true;
 }
 
@@ -147,19 +150,20 @@ bool SeqTrack::tick(stk::StkFrames &data)
   for (uint32_t i = 0; i < samples; i++)
   {
     stk::StkFloat total = 0;
-    for (std::vector<Note *> &notes : voices)
+    auto iter = notes.begin();
+    while (iter != notes.end())
     {
-      for (Note* &note : notes)
+      Note *note = *iter;
+      note->pitch_adj = semitones_to_pitch(pitch);
+      stk::StkFloat v = note->tick();
+      if (note->isFinished())
       {
-        if (note == nullptr) continue;
-        note->pitch_adj = semitones_to_pitch(pitch);
-        stk::StkFloat v = note->tick();
-        if (note->isFinished())
-        {
-          note = nullptr;
-          continue;
-        }
+        notes.erase(iter++);
+      }
+      else
+      {
         total += v;
+        iter++;
       }
     }
     data[i] = total * volume;
@@ -356,6 +360,7 @@ SeqTrack::Step SeqTrack::step()
       note->start();
       
       voices[cmd_->getVoice() - 1].push_back(note);
+      notes.push_back(note);
       return Step::STEP_OK;
     }
   }

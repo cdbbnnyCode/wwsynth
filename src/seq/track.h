@@ -43,6 +43,7 @@ private:
 
   SampleInstr instrument;
   std::vector<Note *> voices[7];
+  std::list<Note *> notes;
 
   void setPerf(uint32_t type, float v);
 public:
@@ -76,6 +77,7 @@ private:
   std::vector<SeqTrack> newTracks;
   std::vector<SeqTrack *> oldTracks; 
   uint32_t tick_count = 0;
+  uint32_t samples_processed = 0;
   float samplerate;
 
   stk::StkFrames tickBufL;
@@ -95,6 +97,12 @@ public:
 
   uint32_t getSamplesPerTick();
   float getSamplerate() { return samplerate; }
+
+  // Stats
+  uint32_t getTickCount() { return tick_count; }
+  uint32_t getSamplesProcessed() { return samples_processed; }
+  uint32_t getTrackCount() { return tracks.size(); }
+  uint32_t getActiveNotes() { return audioSys.getNumActiveNotes(); }
 
   bool tick(stk::WvOut &out);
 
