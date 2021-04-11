@@ -438,8 +438,8 @@ bool IBNK::load(std::istream &f)
       f.read(magic, 4);
       if (memcmp(magic, "INST", 4) == 0)
       {
-        instruments.push_back(std::make_unique<BankInstrument>());
-        std::unique_ptr<BankInstrument> &instrument = instruments.back();
+        instruments[i] = std::make_unique<BankInstrument>();
+        std::unique_ptr<BankInstrument> &instrument = instruments[i];
 
         instrument->isPercussion = false;
         instrument->keys.isPercussion = false;
@@ -504,8 +504,8 @@ bool IBNK::load(std::istream &f)
       }
       else if (memcmp(magic, "PER2", 4) == 0)
       {
-        instruments.push_back(std::make_unique<BankInstrument>());
-        std::unique_ptr<BankInstrument> &instrument = instruments.back();
+        instruments[i] = std::make_unique<BankInstrument>();
+        std::unique_ptr<BankInstrument> &instrument = instruments[i];
         instrument->isPercussion = true;
         instrument->keys.isPercussion = true;
         printf("Percussion instrument @ %08x\n", (uint32_t)f.tellg());

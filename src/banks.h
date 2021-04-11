@@ -120,7 +120,8 @@ private:
   bool loaded = false;
 
 public:
-  std::vector<std::unique_ptr<BankInstrument>> instruments;
+  static const uint32_t NUM_INSTRUMENTS = 245;
+  std::unique_ptr<BankInstrument> instruments[NUM_INSTRUMENTS];
 
   IBNK(void);
   bool load(std::istream &f);

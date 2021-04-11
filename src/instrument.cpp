@@ -19,7 +19,7 @@ void SampleInstr::setInstr(uint32_t instrument)
     return;
   }
 
-  if (instrument >= bank->instruments.size())
+  if (instrument >= IBNK::NUM_INSTRUMENTS)
   {
     printf("WARN: Invalid instrument ID %d\n");
     inst = nullptr;
@@ -27,6 +27,10 @@ void SampleInstr::setInstr(uint32_t instrument)
   }
 
   this->inst = this->bank->instruments[instrument].get();
+  if (this->inst == nullptr)
+  {
+    printf("WARN: Invalid instrument %d\n");
+  }
 }
 
 bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
@@ -65,6 +69,7 @@ bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
   note->key = key;
   note->vel = vel;
   note->adsr = stk::ADSR(); // TODO get ADSR data
+  note->adsr.setReleaseTime(0.01);
   note->setOutputSampleRate(this->sample_rate);
 
   note->isPercussion = inst->isPercussion;
@@ -104,9 +109,9 @@ void Note::stopNow()
 
 static stk::StkFloat getLoopedPos(stk::StkFloat pos, uint32_t loop_start, uint32_t loop_end)
 {
-  if (pos >= loop_end)
+  if (pos >= loop_end - 1)
   {
-    return std::fmod(pos - loop_start, loop_end - loop_start) + loop_start;
+    return std::fmod(pos - loop_start, loop_end - loop_start - 1) + loop_start;
   }
   else
   {
@@ -154,11 +159,12 @@ stk::StkFloat Note::tick()
   stk::StkFloat vel = ((stk::StkFloat)this->vel / 127);
   stk::StkFloat volume = envValue * this->volume * (vel * vel) * volume_adj;
 
-  stk::StkFloat start_pos = getLoopedPos(position, wave->loop_start, wave->loop_end);
+  stk::StkFloat start_pos = getLoopedPos(position, wave->loop_start + 1, wave->loop_end);
   uint32_t start_sample = (uint32_t)start_pos;
-  uint32_t end_sample   = (uint32_t)getLoopedPos(start_sample + 1, wave->loop_start, wave->loop_end);
+  uint32_t end_sample   = (uint32_t)getLoopedPos(start_sample + 1, wave->loop_start + 1, wave->loop_end);
 
   stk::StkFloat off = start_pos - start_sample;
+  if (end_sample > wave->loop_end) printf("end passed loop end\n");
   
   stk::StkFloat start = wave->data[start_sample];
   stk::StkFloat end   = wave->data[end_sample];

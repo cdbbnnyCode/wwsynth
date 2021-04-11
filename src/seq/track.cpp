@@ -49,6 +49,7 @@ bool SeqController::tick(stk::WvOut &out)
   // clear buffer data
   tickBufL.resize(tickBufL.frames(), 1, 0);
   tickBufR.resize(tickBufL.frames(), 1, 0);
+  uint32_t dataSize = 0;
 
   for (SeqTrack &t : tracks)
   {
@@ -57,7 +58,8 @@ bool SeqController::tick(stk::WvOut &out)
     
     double panL = std::sqrt(-t.getPan() + 1);
     double panR = std::sqrt( t.getPan());
-    if (trackData.size() > tickBufL.frames())
+
+    if (trackData.frames() != tickBufL.frames())
     {
       tickBufL.resize(trackData.frames(), 1, 0);
       tickBufR.resize(trackData.frames(), 1, 0);

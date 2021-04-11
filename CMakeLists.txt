@@ -18,5 +18,9 @@ add_executable(synth
     src/main.cpp
 )
 
+add_executable(disassembler
+    src/seq/parser.cpp
+    src/disassembler.cpp
+)
 
 target_link_libraries(synth /usr/lib/libstk.so)
