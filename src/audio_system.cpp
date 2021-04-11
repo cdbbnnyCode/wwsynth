@@ -16,7 +16,7 @@ Note *AudioSystem::getNewNote()
       return n.get();
     }
   }
-  notes.push_back(std::move(std::make_unique<Note>()));
+  notes.push_back(std::make_unique<Note>());
   return notes.back().get();
 }
 
@@ -24,8 +24,9 @@ IBNK *AudioSystem::getBank(uint32_t id)
 {
   if (banks.count(id) == 0)
   {
-    banks[id] = std::move(std::make_unique<IBNK>(aaf.loadBank(id)));
+    banks[id] = std::make_unique<IBNK>(aaf.loadBank(id));
   }
+  if (!banks[id]->isLoaded()) return nullptr;
   return banks[id].get();
 }
 

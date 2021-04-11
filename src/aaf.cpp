@@ -61,11 +61,13 @@ bool AAFFile::load(std::string filename)
       bool success = Wavesystem::getID(f, &wsysid);
       if (!success) return false; // something bad happened
       this->wsys_chunks[wsysid] = &chunk; // pointer to data in vector
+      printf("Wavesystem: ID %d\n", wsysid);
 
       f.seekg(chunk.off);
     }
     else if (chunk.type == AAFChunk::TYPE_IBNK)
     {
+      printf("Bank: ID %d\n", chunk.id);
       this->ibnk_chunks[chunk.id] = &chunk;
     }
 

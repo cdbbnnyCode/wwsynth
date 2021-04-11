@@ -54,6 +54,7 @@ public:
 
   void start();
   void stop();
+  void stopNow();
   void reset();
 
   stk::StkFloat tick();

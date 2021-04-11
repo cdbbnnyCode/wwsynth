@@ -13,6 +13,8 @@ add_executable(synth
     src/aaf.cpp
     src/instrument.cpp
     src/audio_system.cpp
+    src/seq/parser.cpp
+    src/seq/track.cpp
     src/main.cpp
 )
 

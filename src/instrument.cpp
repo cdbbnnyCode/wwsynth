@@ -95,6 +95,13 @@ void Note::reset()
   finished = false;
 }
 
+void Note::stopNow()
+{
+  adsr.setValue(0);
+  playing = false;
+  finished = true;
+}
+
 static stk::StkFloat getLoopedPos(stk::StkFloat pos, uint32_t loop_start, uint32_t loop_end)
 {
   if (pos >= loop_end)
@@ -110,8 +117,17 @@ static stk::StkFloat getLoopedPos(stk::StkFloat pos, uint32_t loop_start, uint32
 
 stk::StkFloat Note::tick()
 {
-  if (!playing) return 0;
-  if (!isPlayable()) return 0;
+  if (!playing)
+  {
+    finished = true;
+    return 0;
+  }
+  if (!isPlayable())
+  {
+    playing = false;
+    finished = true;
+    return 0;
+  }
   stk::StkFloat envValue = adsr.tick();
 
   if (envValue == 0)
@@ -128,7 +144,7 @@ stk::StkFloat Note::tick()
     return 0;
   }
 
-  stk::StkFloat tick_delta = (samplerate / wave->sample_rate)
+  stk::StkFloat tick_delta = (wave->sample_rate / samplerate)
                               * this->pitch * pitch_adj;
   if (!isPercussion)
   {

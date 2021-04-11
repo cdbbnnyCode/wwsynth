@@ -375,7 +375,7 @@ KeyInfo *KeyMap::getKeyInfo(uint8_t key, uint8_t vel)
     {
       for (std::unique_ptr<KeyInfo> &inf : rgn->keys)
       {
-        if (vel < inf->maxVel)
+        if (vel <= inf->maxVel)
         {
           return inf.get();
         }
