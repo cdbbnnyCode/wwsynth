@@ -45,6 +45,9 @@ private:
   std::vector<Note *> voices[7];
   std::list<Note *> notes;
 
+  uint16_t bank_id = 0;
+  uint16_t prog_id = 0;
+
   void setPerf(uint32_t type, float v);
 public:
   enum Step
@@ -62,7 +65,13 @@ public:
   bool tick(stk::StkFrames &data);
 
   uint32_t getPC() { return pc; }
+  float getVolume() { return volume; }
+  float getPitch() { return pitch; }
+  float getReverb() { return reverb; }
   float getPan() { return pan; }
+  uint16_t getBank() { return bank_id; }
+  uint16_t getProg() { return prog_id; }
+  uint32_t getTrackID() { return trackid; }
 
   bool operator==(const SeqTrack &other) const
   {

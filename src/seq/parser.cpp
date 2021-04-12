@@ -68,6 +68,10 @@ std::unique_ptr<SeqCommand> SeqParser::readCommand(uint32_t pc)
     cmd = std::make_unique<CmdJump>(CmdJump(false));
   else if (opcode == 0xC8)
     cmd = std::make_unique<CmdJumpF>(CmdJumpF(false));
+  else if (opcode == 0xCB)
+    cmd = std::make_unique<CmdIDontCare>(CmdIDontCare("loop start?", 3));
+  else if (opcode == 0xCC)
+    cmd = std::make_unique<CmdIDontCare>(CmdIDontCare("loop end?", 3));
   else if (opcode == 0xE6)
     cmd = std::make_unique<CmdIDontCare>(CmdIDontCare("vibrato", 3));
   else if (opcode == 0xE7)

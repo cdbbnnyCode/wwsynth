@@ -65,14 +65,26 @@ bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
   note->wave = wave;
   note->volume = inst->volume * info->volume * info->rgn->volume;
   note->pitch  = inst->pitch  * info->pitch  * info->rgn->pitch;
+  // printf("inst vol=%f; info vol=%f; rgn vol=%f\n", inst->volume, info->volume, info->rgn->volume);
 
   note->key = key;
   note->vel = vel;
   note->adsr = stk::ADSR(); // TODO get ADSR data
-  note->adsr.setReleaseTime(0.01);
+  
+  note->adsr.setAttackTime(((float)inst->osci.attack / 32767) * 10 + 0.0001);
+  note->adsr.setDecayTime(((float)inst->osci.decay / 32767) * 10 + 0.0001);
+  note->adsr.setSustainLevel(((float)inst->osci.sustain / 32767));
+  note->adsr.setReleaseTime(((float)inst->osci.release / 32767) * 10 + 0.0001);
+  
   note->setOutputSampleRate(this->sample_rate);
 
   note->isPercussion = inst->isPercussion;
+  /*
+  if (inst->isPercussion)
+  {
+    printf("create percussion note %u; wave id=%u\n", key, wave->wave_id);
+  }
+  */
 
   return true;
 }
@@ -145,17 +157,18 @@ stk::StkFloat Note::tick()
 
   if (!wave->loop && position >= wave->loop_end)
   {
+    printf("past wave end @ %f (vol=%08x pitch=%08x)\n", position, *(uint32_t *)&volume, *(uint32_t *)&pitch);
     playing = false;
     finished = true;
     return 0;
   }
 
-  stk::StkFloat tick_delta = (wave->sample_rate / samplerate)
-                              * this->pitch * pitch_adj;
+  double tick_delta = ((double)wave->sample_rate / (double)samplerate) * (double)this->pitch * (double)pitch_adj;
   if (!isPercussion)
   {
     tick_delta *= MIDI_NOTES[key] / MIDI_NOTES[wave->base_key];
   }
+  
 
   stk::StkFloat vel = ((stk::StkFloat)this->vel / 127);
   stk::StkFloat volume = envValue * this->volume * (vel * vel) * volume_adj;

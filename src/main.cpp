@@ -101,10 +101,6 @@ void test_seq_play(char **argv, int argc)
     if (!controller.tick(out)) break;
     
     uint32_t tick_count = controller.getTickCount();
-    if (tick_count % 120 == 0)
-      printf("%6u (%6.2fs): %u tracks, %u notes\r",
-          tick_count, (float)controller.getSamplesProcessed() / controller.getSamplerate(),
-          controller.getTrackCount(), controller.getActiveNotes());
   }
 
 }

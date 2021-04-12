@@ -104,12 +104,23 @@ public:
   KeyInfo *getKeyInfo(uint8_t key, uint8_t vel);
 };
 
+struct Osci
+{
+  float modulationAmt = 1.0;
+  uint16_t attack  = 0;
+  uint16_t decay   = 0;
+  uint16_t sustain = 32767;
+  uint16_t hold    = 0;
+  uint16_t release = 0.01;
+};
+
 struct BankInstrument
 {
   bool isPercussion;
   float volume = 1;
   float pitch = 1;
   KeyMap keys;
+  Osci osci;
 };
 
 class IBNK

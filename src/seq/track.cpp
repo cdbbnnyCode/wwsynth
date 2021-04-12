@@ -3,6 +3,8 @@
 #include <memory>
 #include <cmath>
 
+#define SEQ_PRINT_INFO
+
 SeqController::SeqController(AudioSystem &sys, SeqParser &parser, float samplerate)
   : audioSys(sys), parser(parser), samplerate(samplerate)
 {
@@ -75,7 +77,23 @@ bool SeqController::tick(stk::WvOut &out)
   outData.setChannel(0, tickBufL, 0);
   outData.setChannel(1, tickBufR, 0);
   out.tick(tickBufL);
+#ifdef SEQ_PRINT_INFO
 
+  if (tick_count % 30 == 0)
+  {
+    printf("\x1b[1;1H");
+    printf("%-7u (%6.3fs): %u tracks, %u notes; %u bpm\x1b[K\n",
+          tick_count, samples_processed / samplerate, tracks.size(),
+          audioSys.getNumActiveNotes(), tempo);
+    for (SeqTrack &t : tracks)
+    {
+      printf("Track %3u: [%06x] vol=%5.3f pitch=%+5.3f pan=%5.3f reverb=%5.3f | bank=%5u inst=%5u\x1b[K\n",
+            t.getTrackID(), t.getPC(), t.getVolume(), t.getPitch(), t.getPan(), t.getReverb(),
+            t.getBank(), t.getProg());
+    }
+  }
+
+#endif
   samples_processed += outData.frames();
   tick_count++;
   return true;
@@ -99,6 +117,7 @@ static float semitones_to_pitch(float pitch)
 
 void SeqTrack::setPerf(uint32_t type, float v)
 {
+  // if (type == 0) printf("[track %u] set perf %d = %.3f\n", trackid, type, v);
   if (type == 0)      volume = v;
   else if (type == 1) pitch = v;
   else if (type == 2) reverb = v;
@@ -153,8 +172,8 @@ bool SeqTrack::tick(stk::StkFrames &data)
     auto iter = notes.begin();
     while (iter != notes.end())
     {
-      Note *note = *iter;
-      note->pitch_adj = semitones_to_pitch(pitch);
+      Note* &note = *iter;
+      note->pitch_adj = semitones_to_pitch(pitch * 2);
       stk::StkFloat v = note->tick();
       if (note->isFinished())
       {
@@ -214,20 +233,21 @@ SeqTrack::Step SeqTrack::step()
     {
       if (cmd_->getType() == 0x20) // BANK
       {
-        printf("Set bank %d\n", cmd_->getValue());
+        // printf("[track %u] Set bank %u\n", trackid, cmd_->getValue());
         IBNK *bank = controller->audioSys.getBank(cmd_->getValue());
         if (bank == nullptr) return Step::STEP_ERROR;
-
-        printf("-> Use wsys %d\n", bank->getWavesystemID());
 
         Wavesystem *wsys = controller->audioSys.getWsysFor(bank);
         if (wsys == nullptr) return Step::STEP_ERROR;
 
         instrument.setBank(bank, wsys);
+        bank_id = cmd_->getValue();
       }
       else if (cmd_->getType() == 0x21) // PROG
       {
+        // printf("[track %u] Set instr %u\n", trackid, cmd_->getValue());
         instrument.setInstr(cmd_->getValue());
+        prog_id = cmd_->getValue();
       }
       return Step::STEP_OK;
     }
@@ -355,7 +375,7 @@ SeqTrack::Step SeqTrack::step()
       if (!success)
       {
         note->stopNow(); // reset state
-        return Step::STEP_ERROR;
+        return Step::STEP_OK;
       }
       note->start();
       

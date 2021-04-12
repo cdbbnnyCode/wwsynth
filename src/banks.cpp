@@ -465,6 +465,27 @@ bool IBNK::load(std::istream &f)
           rgn_offs[j] = readu32(f);
         }
 
+        f.seekg(base_off + osci_off + 4);
+        instrument->osci.modulationAmt = read_float(f);
+        uint32_t env_off  = readu32(f);
+        f.seekg(base_off + env_off);
+        instrument->osci.attack  = readu16(f);
+        instrument->osci.decay   = readu16(f);
+        instrument->osci.sustain = readu16(f);
+        instrument->osci.hold    = readu16(f);
+        instrument->osci.release = readu16(f);
+        f.seekg(base_off + env_off);
+        for (int j = 0; j < 32; j++)
+        {
+          uint8_t b = f.get();
+          printf("%02x ", b);
+        }
+        printf("\n");
+        printf("Inst #%u: Atk=%-6u Dec=%-6u Sus=%-6u Hld=%-6u Rel=%-6u\n",
+                i, instrument->osci.attack, instrument->osci.decay,
+                instrument->osci.sustain, instrument->osci.hold,
+                instrument->osci.release);
+
         for (uint32_t j = 0; j < key_rgn_count; j++)
         {
           f.seekg(base_off + rgn_offs[j]);
@@ -531,8 +552,8 @@ bool IBNK::load(std::istream &f)
           KeyRgn *rgn = instrument->keys.addRgn(j);
           f.seekg(base_off + key_offs[j]);
 
-          rgn->volume = readu32(f);
-          rgn->pitch = readu32(f);
+          rgn->volume = read_float(f);
+          rgn->pitch = read_float(f);
 
           f.seekg((uint32_t)f.tellg() + 8);
           uint32_t vel_rgn_count = readu32(f);
@@ -552,8 +573,6 @@ bool IBNK::load(std::istream &f)
 
           for (uint32_t k = 0; k < vel_rgn_count; k++)
           {
-            f.seekg(base_off + vel_rgn_offs[k]);
-
             rgn->keys.push_back(std::make_unique<KeyInfo>());
             std::unique_ptr<KeyInfo> &info = rgn->keys.back();
             info->rgn = rgn;
