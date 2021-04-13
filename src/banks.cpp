@@ -469,10 +469,12 @@ bool IBNK::load(std::istream &f)
         instrument->osci.modulationAmt = read_float(f);
         uint32_t env_off  = readu32(f);
         f.seekg(base_off + env_off);
+        readu16(f);
         instrument->osci.attack  = readu16(f);
+        instrument->osci.hold    = readu16(f);
+        readu16(f);
         instrument->osci.decay   = readu16(f);
         instrument->osci.sustain = readu16(f);
-        instrument->osci.hold    = readu16(f);
         instrument->osci.release = readu16(f);
         f.seekg(base_off + env_off);
         for (int j = 0; j < 32; j++)

@@ -74,7 +74,7 @@ bool SampleInstr::createNote(uint8_t key, uint8_t vel, Note *note)
   note->adsr.setAttackTime(((float)inst->osci.attack / 32767) * 10 + 0.0001);
   note->adsr.setDecayTime(((float)inst->osci.decay / 32767) * 10 + 0.0001);
   note->adsr.setSustainLevel(((float)inst->osci.sustain / 32767));
-  note->adsr.setReleaseTime(((float)inst->osci.release / 32767) * 10 + 0.0001);
+  note->adsr.setReleaseTime(((float)inst->osci.release / 32767) * 200 + 0.0001);
   
   note->setOutputSampleRate(this->sample_rate);
 
@@ -157,7 +157,7 @@ stk::StkFloat Note::tick()
 
   if (!wave->loop && position >= wave->loop_end)
   {
-    printf("past wave end @ %f (vol=%08x pitch=%08x)\n", position, *(uint32_t *)&volume, *(uint32_t *)&pitch);
+    // printf("past wave end @ %f (vol=%08x pitch=%08x)\n", position, *(uint32_t *)&volume, *(uint32_t *)&pitch);
     playing = false;
     finished = true;
     return 0;

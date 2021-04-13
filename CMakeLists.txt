@@ -15,7 +15,7 @@ add_executable(synth
     src/audio_system.cpp
     src/seq/parser.cpp
     src/seq/track.cpp
-    src/main.cpp
+    src/recorder.cpp
 )
 
 add_executable(disassembler
@@ -23,4 +23,17 @@ add_executable(disassembler
     src/disassembler.cpp
 )
 
-target_link_libraries(synth /usr/lib/libstk.so)
+add_executable(player
+    src/banks.cpp
+    src/util.cpp
+    src/aaf.cpp
+    src/instrument.cpp
+    src/audio_system.cpp
+    src/seq/parser.cpp
+    src/seq/track.cpp
+    src/audio/audio_out.cpp
+    src/player.cpp    
+)
+
+target_link_libraries(synth stk)
+target_link_libraries(player stk SDL2)

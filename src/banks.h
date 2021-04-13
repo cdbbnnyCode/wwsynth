@@ -111,7 +111,7 @@ struct Osci
   uint16_t decay   = 0;
   uint16_t sustain = 32767;
   uint16_t hold    = 0;
-  uint16_t release = 0.01;
+  uint16_t release = 0;
 };
 
 struct BankInstrument

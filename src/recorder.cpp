@@ -87,7 +87,11 @@ void test_seq_play(char **argv, int argc)
 {
   if (argc < 2) return;
   std::string fname = std::string(argv[1]);
-  std::ifstream f("../data/JaiSeqs/" + fname);
+  std::ifstream f(fname);
+  f.get(); // try to read a byte
+  if (f.fail()) return;
+  f.seekg(0);
+
   SeqParser parser;
   parser.load(f);
   AudioSystem system("../data/JaiInit.aaf", "../data/Banks/");

@@ -89,6 +89,7 @@ private:
   uint32_t samples_processed = 0;
   float samplerate;
 
+
   stk::StkFrames tickBufL;
   stk::StkFrames tickBufR;
 
@@ -98,6 +99,7 @@ public:
 
   uint16_t tempo = 0;
   uint16_t timebase = 0;
+  int loop_limit = 2;
 
   SeqController(AudioSystem& system, SeqParser& parser, float samplerate);
   

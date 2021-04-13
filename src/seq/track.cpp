@@ -76,7 +76,7 @@ bool SeqController::tick(stk::WvOut &out)
   stk::StkFrames outData(tickBufL.frames(), 2);
   outData.setChannel(0, tickBufL, 0);
   outData.setChannel(1, tickBufR, 0);
-  out.tick(tickBufL);
+  out.tick(outData);
 #ifdef SEQ_PRINT_INFO
 
   if (tick_count % 30 == 0)
@@ -173,7 +173,7 @@ bool SeqTrack::tick(stk::StkFrames &data)
     while (iter != notes.end())
     {
       Note* &note = *iter;
-      note->pitch_adj = semitones_to_pitch(pitch * 2);
+      note->pitch_adj = semitones_to_pitch(pitch * 4);
       stk::StkFloat v = note->tick();
       if (note->isFinished())
       {
@@ -300,7 +300,8 @@ SeqTrack::Step SeqTrack::step()
         // TODO loop detection?
         pc = cmd_->getTarget();
         loops++;
-        if (loops >= 2) controller->removeTrack(this);
+        if (controller->loop_limit > 0 && 
+            loops >= controller->loop_limit) controller->removeTrack(this);
       }
       return Step::STEP_OK;
     }
@@ -351,7 +352,8 @@ SeqTrack::Step SeqTrack::step()
         // TODO loop detection?
         pc = cmd_->getTarget();
         loops++;
-        if (loops >= 2) controller->removeTrack(this);
+        if (controller->loop_limit > 0 && 
+            loops >= controller->loop_limit) controller->removeTrack(this);
       }
       return Step::STEP_OK;
     }
