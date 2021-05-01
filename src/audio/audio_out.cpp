@@ -39,10 +39,10 @@ static bool writeData(int dev_id, int16_t *data, uint32_t size)
     printf("Error writing data: %s\n", SDL_GetError());
     return false;
   }
-  if (SDL_GetQueuedAudioSize(dev_id) < 44100) SDL_PauseAudioDevice(dev_id, 1);
+  if (SDL_GetQueuedAudioSize(dev_id) < 1024) SDL_PauseAudioDevice(dev_id, 1);
   else SDL_PauseAudioDevice(dev_id, 0);
 
-  while (SDL_GetQueuedAudioSize(dev_id) > 441000) SDL_Delay(10);
+  while (SDL_GetQueuedAudioSize(dev_id) > 441000) SDL_Delay(5);
   return true;
 }
 
