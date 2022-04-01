@@ -30,6 +30,8 @@ void test_seq_play(char **argv, int argc)
   while (true)
   {
     if (!controller.tick(out)) break;
+    controller.ext_info = "buf size: " + std::to_string(out.getQueueSize());
+
     if (out.bad()) break;
   }
 }

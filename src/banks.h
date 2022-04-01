@@ -104,14 +104,31 @@ public:
   KeyInfo *getKeyInfo(uint8_t key, uint8_t vel);
 };
 
+struct Envp
+{
+  enum
+  {
+    LINEAR,
+    SQUARE,
+    DIRECT,
+    ROOT,
+    LOOP = 0x0D,
+    HOLD,
+    STOP
+  };
+  uint16_t mode;
+  uint16_t time;
+  int16_t value;
+};
+
 struct Osci
 {
-  float modulationAmt = 1.0;
-  uint16_t attack  = 0;
-  uint16_t decay   = 0;
-  uint16_t sustain = 32767;
-  uint16_t hold    = 0;
-  uint16_t release = 0;
+  uint8_t mode;
+  float rate;
+  std::vector<Envp> atkEnv;
+  std::vector<Envp> relEnv;
+  float width;
+  float vertex;
 };
 
 struct BankInstrument

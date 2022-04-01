@@ -10,7 +10,8 @@
 #include <set>
 #include <list>
 #include <vector>
-
+#include <string>
+#include <chrono>
 
 class SeqController;
 
@@ -73,6 +74,8 @@ public:
   uint16_t getProg() { return prog_id; }
   uint32_t getTrackID() { return trackid; }
 
+  SampleInstr *getInstr() { return &instrument; }
+
   bool operator==(const SeqTrack &other) const
   {
     return memcmp(this, &other, sizeof(SeqTrack)) == 0;
@@ -93,9 +96,15 @@ private:
   stk::StkFrames tickBufL;
   stk::StkFrames tickBufR;
 
+  float tick_time_tmp = 0;
+  float tick_time = 0;
+  std::chrono::time_point<std::chrono::steady_clock> last_second;
+
 public:
   AudioSystem &audioSys;
   SeqParser &parser;
+
+  std::string ext_info = "";
 
   uint16_t tempo = 0;
   uint16_t timebase = 0;

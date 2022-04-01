@@ -5,7 +5,9 @@ project(synth)
 set(CXX_STANDARD 11)
 set(COMPILE_FLAGS -g -Og -Wall -Wextra)
 
-include_directories(src/ /usr/include)
+include_directories(/usr/include)
+
+add_subdirectory(src/)
 
 add_executable(synth
     src/banks.cpp

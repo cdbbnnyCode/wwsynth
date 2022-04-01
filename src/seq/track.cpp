@@ -29,6 +29,7 @@ uint32_t SeqController::getSamplesPerTick()
 
 bool SeqController::tick(stk::WvOut &out)
 {
+  std::chrono::time_point proc_start = std::chrono::steady_clock::now();
 
   for (SeqTrack* &t : oldTracks)
   {
@@ -55,6 +56,7 @@ bool SeqController::tick(stk::WvOut &out)
 
   for (SeqTrack &t : tracks)
   {
+    // if (t.getTrackID() != 255 && t.getTrackID() != 5) continue;
     stk::StkFrames trackData;
     if (!t.tick(trackData)) return false;
     
@@ -76,20 +78,46 @@ bool SeqController::tick(stk::WvOut &out)
   stk::StkFrames outData(tickBufL.frames(), 2);
   outData.setChannel(0, tickBufL, 0);
   outData.setChannel(1, tickBufR, 0);
+
+  std::chrono::time_point proc_end = std::chrono::steady_clock::now();
+  float proc_t = (proc_end - proc_start).count() / 1e9f;
+  tick_time_tmp += proc_t;
+  if ((proc_end - last_second).count() >= 1000000000L)
+  {
+    last_second = proc_end;
+    tick_time = tick_time_tmp;
+    tick_time_tmp = 0;
+  }
+
   out.tick(outData);
 #ifdef SEQ_PRINT_INFO
 
   if (tick_count % 30 == 0)
   {
     printf("\x1b[1;1H");
-    printf("%-7u (%6.3fs): %u tracks, %u notes; %u bpm\x1b[K\n",
+    printf("%-7u (%6.3fs): %2u tracks, %2u notes; %u bpm | %d%% | %s\x1b[K\n",
           tick_count, samples_processed / samplerate, tracks.size(),
-          audioSys.getNumActiveNotes(), tempo);
+          audioSys.getNumActiveNotes(), tempo, (int)(tick_time * 100), ext_info.c_str());
     for (SeqTrack &t : tracks)
     {
-      printf("Track %3u: [%06x] vol=%5.3f pitch=%+5.3f pan=%5.3f reverb=%5.3f | bank=%5u inst=%5u\x1b[K\n",
+
+      printf("Track %3u: [%06x] vol=%5.3f pitch=%+5.3f pan=%5.3f reverb=%5.3f | bank=%5u inst=%5u",
             t.getTrackID(), t.getPC(), t.getVolume(), t.getPitch(), t.getPan(), t.getReverb(),
             t.getBank(), t.getProg());
+
+      // \x1b[K\n
+      IBNK *bank = audioSys.getBank(t.getBank());
+      if (t.getInstr()->isValid() && bank != nullptr && t.getProg() < bank->NUM_INSTRUMENTS)
+      {
+        BankInstrument *instr = bank->instruments[t.getProg()].get();
+        if (instr != nullptr && !instr->isPercussion)
+        {
+          Note dummyNote;
+          t.getInstr()->createNote(60, 64, &dummyNote);
+          // printf(" [atk=%.3f dec=%.3f sus=%.3f rel=%.3f]", dummyNote.dbg_atk, dummyNote.dbg_dec, dummyNote.dbg_sus, dummyNote.dbg_rel);
+        }
+      }
+      printf("\x1b[K\n");
     }
   }
 
@@ -173,6 +201,7 @@ bool SeqTrack::tick(stk::StkFrames &data)
     while (iter != notes.end())
     {
       Note* &note = *iter;
+      // note->env.setTickrate(samples);
       note->pitch_adj = semitones_to_pitch(pitch * 4);
       stk::StkFloat v = note->tick();
       if (note->isFinished())
@@ -258,8 +287,8 @@ SeqTrack::Step SeqTrack::step()
     if (cmd_ != nullptr)
     {
       float val;
-      if (cmd_->isWide()) val = (int16_t)cmd_->getValue() / 32768.0;
-      else                val = (int8_t)cmd_->getValue()  / 128.0;
+      if (cmd_->isWide()) val = (int16_t)cmd_->getValue() / 32767.0;
+      else                val = (int8_t)cmd_->getValue()  / 127.0;
       
       if (cmd_->getDuration() > 0)
       {
@@ -301,7 +330,7 @@ SeqTrack::Step SeqTrack::step()
         pc = cmd_->getTarget();
         loops++;
         if (controller->loop_limit > 0 && 
-            loops >= controller->loop_limit) controller->removeTrack(this);
+            loops >= controller->loop_limit) return Step::STEP_FINISHED;
       }
       return Step::STEP_OK;
     }

@@ -26,6 +26,8 @@ public:
 
   void setVolume(double volume) { this->volume = volume; }
   double getVolume() { return volume; }
+
+  uint32_t getQueueSize() { return SDL_GetQueuedAudioSize(dev_id); }
 };
 
 #endif // SYNTH_AUDIO_AUDIO_OUT_H

@@ -393,6 +393,27 @@ bool IBNK::isLoaded()
   return this->loaded;
 }
 
+
+static void read_envp(std::istream &f, std::vector<Envp> &envs)
+{
+  while (true)
+  {
+    Envp env;
+    env.mode = readu16(f);
+    env.time = readu16(f);
+    env.value = readu16(f);
+    printf("%02x @%d -> %.3f, ", env.mode, env.time, env.value / 32767.0);
+
+    envs.push_back(env);
+    
+    if (env.mode == 0x0E || env.mode == 0x0F)
+    {
+      break;
+    }
+  }
+  printf("\n");
+}
+
 bool IBNK::load(std::istream &f)
 {
   if (this->loaded) return false;
@@ -466,27 +487,18 @@ bool IBNK::load(std::istream &f)
         }
 
         f.seekg(base_off + osci_off + 4);
-        instrument->osci.modulationAmt = read_float(f);
-        uint32_t env_off  = readu32(f);
-        f.seekg(base_off + env_off);
-        readu16(f);
-        instrument->osci.attack  = readu16(f);
-        instrument->osci.hold    = readu16(f);
-        readu16(f);
-        instrument->osci.decay   = readu16(f);
-        instrument->osci.sustain = readu16(f);
-        instrument->osci.release = readu16(f);
-        f.seekg(base_off + env_off);
-        for (int j = 0; j < 32; j++)
-        {
-          uint8_t b = f.get();
-          printf("%02x ", b);
-        }
-        printf("\n");
-        printf("Inst #%u: Atk=%-6u Dec=%-6u Sus=%-6u Hld=%-6u Rel=%-6u\n",
-                i, instrument->osci.attack, instrument->osci.decay,
-                instrument->osci.sustain, instrument->osci.hold,
-                instrument->osci.release);
+        instrument->osci.rate = read_float(f);
+        uint32_t atk_env_off  = readu32(f);
+        uint32_t rel_env_off  = readu32(f);
+        instrument->osci.width = read_float(f);
+        instrument->osci.vertex = read_float(f);
+
+        f.seekg(base_off + atk_env_off);
+        printf("atk: ");
+        read_envp(f, instrument->osci.atkEnv);
+        f.seekg(base_off + rel_env_off);
+        printf("rel: ");
+        read_envp(f, instrument->osci.relEnv);
 
         for (uint32_t j = 0; j < key_rgn_count; j++)
         {
@@ -532,6 +544,12 @@ bool IBNK::load(std::istream &f)
         instrument->isPercussion = true;
         instrument->keys.isPercussion = true;
         printf("Percussion instrument @ %08x\n", (uint32_t)f.tellg());
+
+        // make default oscillator
+        instrument->osci.atkEnv.push_back({0x0, 0, 32767});
+        instrument->osci.atkEnv.push_back({0xe, 0, 0});
+        instrument->osci.relEnv.push_back({0x3, 50, 0});
+        instrument->osci.relEnv.push_back({0xf, 0, 0});
 
         f.seekg((uint32_t)f.tellg() + 0x84);
         printf("%08x\n", (uint32_t)f.tellg());

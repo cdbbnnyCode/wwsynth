@@ -19,6 +19,7 @@ SDLAudioOut::SDLAudioOut(float samplerate, uint32_t bufsize) : stk::WvOut()
   audio_spec.userdata = nullptr;
 
   dev_id = SDL_OpenAudioDevice(nullptr, 0, &audio_spec, nullptr, 0);
+  SDL_PauseAudioDevice(dev_id, 0);
   if (dev_id <= 0)
   {
     err = true;
@@ -33,16 +34,29 @@ SDLAudioOut::~SDLAudioOut()
 
 static bool writeData(int dev_id, int16_t *data, uint32_t size)
 {
-
   if (SDL_QueueAudio(dev_id, data, size) < 0)
   {
     printf("Error writing data: %s\n", SDL_GetError());
     return false;
   }
-  if (SDL_GetQueuedAudioSize(dev_id) < 1024) SDL_PauseAudioDevice(dev_id, 1);
+  /*
+  if (SDL_GetQueuedAudioSize(dev_id) < 500) SDL_PauseAudioDevice(dev_id, 1);
   else SDL_PauseAudioDevice(dev_id, 0);
+  */
+  SDL_Event ev;
 
-  while (SDL_GetQueuedAudioSize(dev_id) > 441000) SDL_Delay(5);
+  while (SDL_GetQueuedAudioSize(dev_id) > 44100 * 8)
+  {
+    SDL_Delay(1);
+    while (SDL_PollEvent(&ev))
+    {
+      if (ev.type == SDL_QUIT)
+      {
+        printf("Received Ctrl+C event; quitting soon\n");
+        return false;
+      }
+    }
+  }
   return true;
 }
 

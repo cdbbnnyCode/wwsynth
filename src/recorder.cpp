@@ -14,7 +14,7 @@ void test_audio(void)
 {
   AudioSystem system("../data/JaiInit.aaf", "../data/Banks/");
 
-  uint32_t bank_id = 0;
+  uint32_t bank_id = 60;
   uint32_t inst_id = 0;
 
   IBNK *bank = system.getBank(bank_id);
@@ -29,33 +29,48 @@ void test_audio(void)
   stk::Stk::setSampleRate(44100);
   stk::FileWvOut out("test.wav");
 
-  for (int i = 60; i < 72; i++)
-  {
-    Note *n = system.getNewNote();
-    Note *n2 = system.getNewNote();
-    inst.createNote(i, 63, n);
-    inst.createNote(i + 8, 63, n2);
-    // printf("note %d: wave %d\n", i, n->wave->wave_id);
-    n->start();
-    n2->start();
+  Note *n = system.getNewNote();
+  inst.createNote(60, 63, n);
 
-    for (int j = 0; j < (44100); j++)
+  n->env.setSamplerate(44100);
+
+  for (int j = 0; j < 3; j++)
+  {
+    printf("atk: ");
+    for (const Envp &env : n->env.getOscillator()->atkEnv)
     {
-      double t = (j / 44100.0) * 6.283185;
-      n->pitch_adj = 1 + 0.1 * std::sin(t * 3);
+      printf("%02x: t=%d -> %d, ", env.mode, env.time, env.value);
+    }
+    printf("\n");
+    printf("rel: ");
+    for (const Envp &env : n->env.getOscillator()->relEnv)
+    {
+      printf("%02x: t=%d -> %d, ", env.mode, env.time, env.value);
+    }
+    printf("\n");
+
+
+    n->start();
+    for (int i = 0; i < 441000; i++)
+    {
       stk::StkFloat v = system.tickAllNotes();
       out.tick(v);
     }
 
     n->stop();
-    n2->stop();
+
+    int i = 0;
+    while (system.getNumActiveNotes() != 0)
+    {
+      stk::StkFloat v = system.tickAllNotes();
+      out.tick(v);
+      i++;
+    }
+    printf("rel for %d samples\n", i);
+
+    n->reset();
   }
 
-  while (system.getNumActiveNotes() != 0)
-  {
-    stk::StkFloat v = system.tickAllNotes();
-    out.tick(v);
-  }
 }
 
 void test_seq(void)
@@ -99,7 +114,7 @@ void test_seq_play(char **argv, int argc)
   SeqController controller(system, parser, 44100);
   
   stk::Stk::setSampleRate(44100);
-  stk::FileWvOut out(fname + ".wav");
+  stk::FileWvOut out(fname + ".wav", 2);
   while (true)
   {
     if (!controller.tick(out)) break;
@@ -112,9 +127,9 @@ void test_seq_play(char **argv, int argc)
 int main(int argc, char **argv)
 {
 
-  // test_audio();
+  test_audio();
   // test_seq();
-  test_seq_play(argv, argc);
+  // test_seq_play(argv, argc);
   
   return 0;
 }
