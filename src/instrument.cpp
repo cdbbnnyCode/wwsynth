@@ -171,9 +171,9 @@ stk::StkFloat Note::tick()
   stk::StkFloat vel = ((stk::StkFloat)this->vel / 127);
   stk::StkFloat volume = envValue * (this->volume * this->volume) * (vel) * (volume_adj);
 
-  stk::StkFloat start_pos = getLoopedPos(position, wave->loop_start + 1, wave->loop_end);
+  stk::StkFloat start_pos = getLoopedPos(position, wave->loop_start, wave->loop_end);
   uint32_t start_sample = (uint32_t)start_pos;
-  uint32_t end_sample   = (uint32_t)getLoopedPos(start_sample + 1, wave->loop_start + 1, wave->loop_end);
+  uint32_t end_sample   = (uint32_t)getLoopedPos(start_sample + 1, wave->loop_start, wave->loop_end);
 
   stk::StkFloat off = start_pos - start_sample;
   if (end_sample > wave->loop_end) printf("end passed loop end\n");
