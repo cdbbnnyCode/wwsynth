@@ -71,8 +71,8 @@ bool SeqController::tick(stk::WvOut &out)
     
     for (uint32_t i = 0; i < trackData.frames(); i++)
     {
-      tickBufL[i] += trackData[i] * panL;
-      tickBufR[i] += trackData[i] * panR;
+      tickBufL[i] += trackData[i] * panL * volume;
+      tickBufR[i] += trackData[i] * panR * volume;
     }
   }
   stk::StkFrames outData(tickBufL.frames(), 2);
@@ -202,7 +202,7 @@ bool SeqTrack::tick(stk::StkFrames &data)
     {
       Note* &note = *iter;
       // note->env.setTickrate(samples);
-      note->pitch_adj = semitones_to_pitch(pitch * 4);
+      note->pitch_adj = semitones_to_pitch(pitch * 6);
       stk::StkFloat v = note->tick();
       if (note->isFinished())
       {

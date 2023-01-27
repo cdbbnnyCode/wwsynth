@@ -13,8 +13,7 @@ void test_seq_play(char **argv, int argc)
   if (argc < 2) return;
   std::string fname = std::string(argv[1]);
   std::ifstream f(fname);
-  f.get(); // try to read a byte
-  if (f.fail()) return;
+  if (!f) return;
   f.seekg(0);
 
   SeqParser parser;
@@ -23,10 +22,10 @@ void test_seq_play(char **argv, int argc)
 
   SeqController controller(system, parser, 44100);
   controller.loop_limit = -1;
+  controller.volume = 0.3;
   
   stk::Stk::setSampleRate(44100);
   SDLAudioOut out(44100);
-  out.setVolume(0.5);
   while (true)
   {
     if (!controller.tick(out)) break;

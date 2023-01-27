@@ -115,6 +115,7 @@ void test_seq_play(char **argv, int argc)
   
   stk::Stk::setSampleRate(44100);
   stk::FileWvOut out(fname + ".wav", 2);
+  controller.volume = 0.3;
   while (true)
   {
     if (!controller.tick(out)) break;
@@ -127,9 +128,9 @@ void test_seq_play(char **argv, int argc)
 int main(int argc, char **argv)
 {
 
-  test_audio();
+  // test_audio();
   // test_seq();
-  // test_seq_play(argv, argc);
+  test_seq_play(argv, argc);
   
   return 0;
 }
